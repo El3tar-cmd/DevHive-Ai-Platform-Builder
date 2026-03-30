@@ -1,6 +1,6 @@
 /* ── FileStatusGrid — Colored dot grid for file statuses ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 
 export default function FileStatusGrid() {
   const { state, dispatch, Actions, plan } = useForge();

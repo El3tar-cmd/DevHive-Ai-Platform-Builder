@@ -2,7 +2,7 @@
    ProjectsDrawer — Slide-out panel with project history
    ══════════════════════════════════════════════════════ */
 
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { getProjectsIndex, loadProject, deleteProject, createNewProject, timeAgo } from "../utils/projectStore.js";
 
 const APP_TYPE_ICONS = {

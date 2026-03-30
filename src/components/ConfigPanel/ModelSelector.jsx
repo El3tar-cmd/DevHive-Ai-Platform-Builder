@@ -1,6 +1,6 @@
 /* ── ModelSelector — Provider & Model dropdown ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { PROVIDERS } from "../../config/constants.js";
 
 export default function ModelSelector() {

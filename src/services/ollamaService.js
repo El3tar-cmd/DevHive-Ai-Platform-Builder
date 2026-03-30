@@ -15,7 +15,7 @@ export async function listModels() {
     });
     const data = await res.json();
     return (data.models || []).map(m => m.name);
-  } catch (err) {
+  } catch {
     throw new Error("فشل الاتصال بـ Ollama. تأكد أنه يعمل على المنفذ 11434.");
   }
 }

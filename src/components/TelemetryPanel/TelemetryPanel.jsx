@@ -2,7 +2,7 @@
    TelemetryPanel — Stats, progress, timeline
    ══════════════════════════════════════════════════════ */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { PHASE_LABELS } from "../../config/constants.js";
 import MetricsGrid from "./MetricsGrid.jsx";
 import ProgressBar from "./ProgressBar.jsx";

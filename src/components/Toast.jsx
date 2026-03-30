@@ -1,6 +1,6 @@
 /* ── Toast — Notification toast ── */
 
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 
 export default function Toast() {
   const { state } = useForge();

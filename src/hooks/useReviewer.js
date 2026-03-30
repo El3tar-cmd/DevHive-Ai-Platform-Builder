@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { chatCompletion } from "../services/providerRouter.js";
 import { REVIEWER_SYSTEM_MESSAGE } from "../config/prompts.js";
 import { getApiKey } from "../utils/apiKey.js";
@@ -47,7 +47,7 @@ ${content}
       let reviewResult;
       try {
         reviewResult = JSON.parse(responseText);
-      } catch (err) {
+      } catch {
         console.error("Failed to parse Reviewer JSON:", responseText);
         return { isValid: true, missingFiles: [] }; // Fallback to pass to avoid breaking loop
       }
@@ -61,7 +61,7 @@ ${content}
       console.error("Reviewer agent error:", error);
       return { isValid: true, missingFiles: [] };
     }
-  }, [state.provider, state.model, state.geminiApiKey, state.openRouterApiKey]);
+  }, [state]);
 
   return { runStaticReview };
 }

@@ -2,7 +2,7 @@
    CodePanel — Code/stream/review viewer container
    ══════════════════════════════════════════════════════ */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { useToast } from "../../hooks/useToast.js";
 import { downloadBlob, copyToClipboard } from "../../utils/download.js";
 import StreamView from "./StreamView.jsx";

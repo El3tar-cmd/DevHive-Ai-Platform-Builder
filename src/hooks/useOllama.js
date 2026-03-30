@@ -3,8 +3,8 @@
    Auto-retries if Ollama is offline (local provider only).
    ══════════════════════════════════════════════════════ */
 
-import { useEffect, useCallback, useRef } from "react";
-import { useForge } from "../context/ForgeContext.jsx";
+import { useEffect, useRef } from "react";
+import { useForge } from "../context/useForge.js";
 import { listModels as fetchProviderModels } from "../services/providerRouter.js";
 import { getApiKey, getProviderLabel } from "../utils/apiKey.js";
 
@@ -18,60 +18,69 @@ const OLLAMA_RETRY_INTERVAL_MS = 10_000;
 export function useOllama() {
   const { state, dispatch, Actions, addStep } = useForge();
   const retryTimerRef = useRef(null);
-
-  const fetchModels = useCallback(async () => {
-    try {
-      const apiKey = getApiKey(state);
-      const list = await fetchProviderModels(state.provider, apiKey);
-
-      dispatch({ type: Actions.SET_MODELS, payload: list });
-
-      // Auto-select first model if current selection is no longer valid
-      if (list.length && !list.includes(state.model)) {
-        dispatch({ type: Actions.SET_MODEL, payload: list[0] });
-      }
-
-      dispatch({ type: Actions.SET_CONNECTED, payload: true });
-      addStep("info", `${getProviderLabel(state.provider)} متصل`, `${list.length} نموذج متاح`);
-
-      // Clear any pending retry on success
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
-        retryTimerRef.current = null;
-      }
-    } catch (err) {
-      dispatch({ type: Actions.SET_CONNECTED, payload: false });
-      dispatch({ type: Actions.SET_MODELS, payload: [] });
-
-      if (state.provider === "gemini" && !state.geminiApiKey) {
-        addStep("warn", "مفتاح API مفقود", "يرجى إدخال مفتاح Gemini API");
-      } else if (state.provider === "openrouter" && !state.openRouterApiKey) {
-        addStep("warn", "مفتاح API مفقود", "يرجى إدخال مفتاح OpenRouter API");
-      } else {
-        addStep("error", "فشل الاتصال", err.message);
-
-        // Auto-retry only for local Ollama (cloud providers need user action for key issues)
-        if (state.provider === "ollama") {
-          retryTimerRef.current = setTimeout(() => {
-            fetchModels();
-          }, OLLAMA_RETRY_INTERVAL_MS);
-        }
-      }
-    }
-  }, [state.provider, state.geminiApiKey, state.openRouterApiKey, state.model, dispatch, Actions, addStep]);
+  const { provider, model, geminiApiKey, openRouterApiKey } = state;
 
   // Re-fetch when provider or API key changes
   useEffect(() => {
-    fetchModels();
+    let cancelled = false;
+
+    const fetchModels = async () => {
+      try {
+        const apiKey = getApiKey({ provider, geminiApiKey, openRouterApiKey });
+        const list = await fetchProviderModels(provider, apiKey);
+
+        if (cancelled) return;
+
+        dispatch({ type: Actions.SET_MODELS, payload: list });
+
+        if (list.length && !list.includes(model)) {
+          dispatch({ type: Actions.SET_MODEL, payload: list[0] });
+        }
+
+        dispatch({ type: Actions.SET_CONNECTED, payload: true });
+        addStep("info", `${getProviderLabel(provider)} متصل`, `${list.length} نموذج متاح`);
+
+        if (retryTimerRef.current) {
+          clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = null;
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        dispatch({ type: Actions.SET_CONNECTED, payload: false });
+        dispatch({ type: Actions.SET_MODELS, payload: [] });
+
+        if (provider === "gemini" && !geminiApiKey) {
+          addStep("warn", "مفتاح API مفقود", "يرجى إدخال مفتاح Gemini API");
+          return;
+        }
+
+        if (provider === "openrouter" && !openRouterApiKey) {
+          addStep("warn", "مفتاح API مفقود", "يرجى إدخال مفتاح OpenRouter API");
+          return;
+        }
+
+        addStep("error", "فشل الاتصال", err.message);
+
+        if (provider === "ollama") {
+          retryTimerRef.current = setTimeout(() => {
+            void fetchModels();
+          }, OLLAMA_RETRY_INTERVAL_MS);
+        }
+      }
+    };
+
+    void fetchModels();
 
     // Cleanup retry timer on unmount or when dependencies change
     return () => {
+      cancelled = true;
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
     };
-  }, [fetchModels, state.provider, state.geminiApiKey, state.openRouterApiKey]);
+  }, [provider, model, geminiApiKey, openRouterApiKey, dispatch, Actions, addStep]);
 
-  return { fetchModels };
+  return {};
 }

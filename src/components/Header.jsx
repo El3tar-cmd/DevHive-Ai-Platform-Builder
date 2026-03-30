@@ -2,7 +2,7 @@
    Header v2 — Glassmorphic top bar
    ══════════════════════════════════════════════════════ */
 
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { PHASE_COLORS, PHASE_LABELS } from "../config/constants.js";
 import { createNewProject } from "../utils/projectStore.js";
 

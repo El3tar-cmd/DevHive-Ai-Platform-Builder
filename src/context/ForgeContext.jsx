@@ -2,12 +2,13 @@
    Forge Context — Centralized state with useReducer
    ══════════════════════════════════════════════════════ */
 
-import { createContext, useContext, useReducer, useRef, useCallback, useEffect, useMemo } from "react";
+import { useReducer, useRef, useCallback, useEffect, useMemo } from "react";
 import { FILE_PLANS, APP_TYPES } from "../config/constants.js";
 import { 
   getActiveProjectId, loadProject, saveProject, 
   createNewProject, migrateLegacyProject 
 } from "../utils/projectStore.js";
+import { ForgeContext } from "./ForgeContextCore.js";
 
 /* ── Multi-Project Aware State Loader ── */
 const loadInitialState = () => {
@@ -28,6 +29,7 @@ const loadInitialState = () => {
 };
 
 const { id: initialProjectId, state: savedState } = loadInitialState();
+const SAVE_DEBOUNCE_MS = 400;
 
 /* ── Initial State ── */
 const initialState = {
@@ -41,9 +43,9 @@ const initialState = {
   connected: false,
 
   // Config
-  provider: "ollama", // "ollama" | "gemini" | "openrouter"
-  geminiApiKey: "",
-  openRouterApiKey: "",
+  provider: savedState?.provider || "ollama", // "ollama" | "gemini" | "openrouter"
+  geminiApiKey: savedState?.geminiApiKey || "",
+  openRouterApiKey: savedState?.openRouterApiKey || "",
   appType: savedState?.appType || "nextjs",
   projName: savedState?.projName || "my-app",
   prompt: savedState?.prompt || "",
@@ -64,7 +66,7 @@ const initialState = {
 
   // Telemetry
   steps: savedState?.steps || [],
-  metrics: savedState?.metrics || { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0 },
+  metrics: savedState?.metrics || { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0, tpsHistory: [] },
 
   // UI
   mobileTab: savedState?.mobileTab || "config",
@@ -165,7 +167,7 @@ function forgeReducer(state, action) {
         steps: [],
         progress: 0,
         phase: "planning",
-        metrics: { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0 },
+        metrics: { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0, tpsHistory: [] },
         mobileTab: "files",
         codeView: "stream",
       };
@@ -252,7 +254,16 @@ function forgeReducer(state, action) {
       return { ...state, currentStream: action.payload };
 
     case Actions.UPDATE_METRICS:
-      return { ...state, metrics: { ...state.metrics, ...action.payload } };
+      return {
+        ...state,
+        metrics: {
+          ...state.metrics,
+          ...action.payload,
+          tpsHistory: action.payload.tps > 0
+            ? [...state.metrics.tpsHistory.slice(-39), action.payload.tps]
+            : state.metrics.tpsHistory,
+        },
+      };
 
     case Actions.ADD_STEP:
       return { ...state, steps: [...state.steps, action.payload] };
@@ -331,25 +342,25 @@ function forgeReducer(state, action) {
       return {
         ...initialState,
         projectId: p.id,
-        provider: p.savedState?.provider || state.provider,
-        geminiApiKey: p.savedState?.geminiApiKey || state.geminiApiKey,
-        openRouterApiKey: p.savedState?.openRouterApiKey || state.openRouterApiKey,
+        provider: p.savedState?.provider ?? state.provider,
+        geminiApiKey: p.savedState?.geminiApiKey ?? state.geminiApiKey,
+        openRouterApiKey: p.savedState?.openRouterApiKey ?? state.openRouterApiKey,
         models: state.models,
-        model: p.savedState?.model || state.model,
+        model: p.savedState?.model ?? state.model,
         connected: state.connected,
-        appType: p.savedState?.appType || "nextjs",
-        projName: p.savedState?.projName || "my-app",
-        prompt: p.savedState?.prompt || "",
-        features: p.savedState?.features || ["Authentication", "RTL Arabic"],
-        dynamicPlan: p.savedState?.dynamicPlan || null,
-        files: p.savedState?.files || {},
-        fileStatuses: p.savedState?.fileStatuses || {},
-        fileReviews: p.savedState?.fileReviews || {},
-        selectedFile: p.savedState?.selectedFile || null,
-        progress: p.savedState?.progress || 0,
+        appType: p.savedState?.appType ?? "nextjs",
+        projName: p.savedState?.projName ?? "my-app",
+        prompt: p.savedState?.prompt ?? "",
+        features: p.savedState?.features ?? ["Authentication", "RTL Arabic"],
+        dynamicPlan: p.savedState?.dynamicPlan ?? null,
+        files: p.savedState?.files ?? {},
+        fileStatuses: p.savedState?.fileStatuses ?? {},
+        fileReviews: p.savedState?.fileReviews ?? {},
+        selectedFile: p.savedState?.selectedFile ?? null,
+        progress: p.savedState?.progress ?? 0,
         phase: p.savedState?.phase === "generating" || p.savedState?.phase === "planning" ? "stopped" : (p.savedState?.phase || "idle"),
-        steps: p.savedState?.steps || [],
-        metrics: p.savedState?.metrics || { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0 },
+        steps: p.savedState?.steps ?? [],
+        metrics: p.savedState?.metrics ?? { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0, tpsHistory: [] },
         showProjectsDrawer: false,
       };
     }
@@ -389,7 +400,7 @@ function forgeReducer(state, action) {
 
         // Reset telemetry
         steps: [],
-        metrics: { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0 },
+        metrics: { tokens: 0, tps: 0, elapsed: 0, chars: 0, files: 0, tpsHistory: [] },
 
         // Reset UI
         mobileTab: "config",
@@ -406,41 +417,56 @@ function forgeReducer(state, action) {
   }
 }
 
-/* ── Context ── */
-const ForgeContext = createContext(null);
-
 /* ── Provider ── */
 export function ForgeProvider({ children }) {
   const [state, dispatch] = useReducer(forgeReducer, initialState);
+  const saveTimeoutRef = useRef(null);
 
   // Multi-project persistence
   useEffect(() => {
     if (!state.projectId) return;
-    try {
-      const stateToSave = {
-        model: state.model,
-        projName: state.projName,
-        appType: state.appType,
-        features: state.features,
-        prompt: state.prompt,
-        dynamicPlan: state.dynamicPlan,
-        files: state.files,
-        fileStatuses: state.fileStatuses,
-        fileReviews: state.fileReviews,
-        selectedFile: state.selectedFile,
-        progress: state.progress,
-        phase: state.phase,
-        steps: state.steps,
-        metrics: state.metrics,
-        mobileTab: state.mobileTab,
-        codeView: state.codeView
-      };
-      saveProject(state.projectId, stateToSave);
-    } catch (e) {
-      console.warn("Could not save project state", e);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        const stateToSave = {
+          provider: state.provider,
+          geminiApiKey: state.geminiApiKey,
+          openRouterApiKey: state.openRouterApiKey,
+          model: state.model,
+          projName: state.projName,
+          appType: state.appType,
+          features: state.features,
+          prompt: state.prompt,
+          dynamicPlan: state.dynamicPlan,
+          files: state.files,
+          fileStatuses: state.fileStatuses,
+          fileReviews: state.fileReviews,
+          selectedFile: state.selectedFile,
+          progress: state.progress,
+          phase: state.phase,
+          steps: state.steps,
+          metrics: state.metrics,
+          mobileTab: state.mobileTab,
+          codeView: state.codeView
+        };
+        saveProject(state.projectId, stateToSave);
+      } catch (e) {
+        console.warn("Could not save project state", e);
+      }
+    }, SAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
   }, [
-    state.projectId, state.model, state.projName, state.appType, state.features,
+    state.projectId, state.provider, state.geminiApiKey, state.openRouterApiKey,
+    state.model, state.projName, state.appType, state.features,
     state.prompt, state.dynamicPlan, state.files, state.fileStatuses,
     state.fileReviews, state.selectedFile, state.progress, state.phase,
     state.steps, state.metrics, state.mobileTab, state.codeView
@@ -488,12 +514,3 @@ export function ForgeProvider({ children }) {
     </ForgeContext.Provider>
   );
 }
-
-/* ── Hook ── */
-export function useForge() {
-  const ctx = useContext(ForgeContext);
-  if (!ctx) throw new Error("useForge must be used within <ForgeProvider>");
-  return ctx;
-}
-
-export { Actions };

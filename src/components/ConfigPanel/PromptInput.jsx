@@ -1,6 +1,6 @@
 /* ── PromptInput — Project name + description textarea ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { sanitizeProjectName } from "../../utils/sanitize.js";
 
 export default function PromptInput({ onGenerate }) {

@@ -2,7 +2,7 @@
    CommandPalette — ⌘K quick-action modal
    ══════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+ import { useState, useCallback } from "react";
 
 const STATIC_COMMANDS = [
   { id: "generate", label: "توليد المشروع",  icon: "⚡", kbd: "Ctrl+Enter", group: "أفعال" },
@@ -19,16 +19,6 @@ const STATIC_COMMANDS = [
 export default function CommandPalette({ open, onClose, handlers }) {
   const [query,   setQuery]   = useState("");
   const [cursor,  setCursor]  = useState(0);
-  const inputRef              = useRef(null);
-
-  // Focus input when opened
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setCursor(0);
-      setTimeout(() => inputRef.current?.focus(), 20);
-    }
-  }, [open]);
 
   const filtered = STATIC_COMMANDS.filter(c =>
     c.label.includes(query) || c.id.includes(query.toLowerCase())
@@ -66,10 +56,10 @@ export default function CommandPalette({ open, onClose, handlers }) {
         <div className="palette-input-wrap">
           <span className="palette-icon">⌘</span>
           <input
-            ref={inputRef}
             className="palette-input"
             placeholder="ابحث عن إجراء..."
             value={query}
+            autoFocus
             onChange={e => { setQuery(e.target.value); setCursor(0); }}
             onKeyDown={handleKey}
           />
@@ -90,7 +80,7 @@ export default function CommandPalette({ open, onClose, handlers }) {
           {groups.map(group => (
             <div key={group}>
               <div className="palette-sep">{group}</div>
-              {filtered.filter(c => c.group === group).map((cmd, i) => {
+              {filtered.filter(c => c.group === group).map((cmd) => {
                 const globalIdx = filtered.indexOf(cmd);
                 return (
                   <div

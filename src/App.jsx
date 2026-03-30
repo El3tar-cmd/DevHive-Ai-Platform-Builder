@@ -6,7 +6,7 @@ import { useState, lazy, Suspense, useCallback } from "react";
 import { useOllama } from "./hooks/useOllama.js";
 import { useGeneration } from "./hooks/useGeneration.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
-import { useForge } from "./context/ForgeContext.jsx";
+import { useForge } from "./context/useForge.js";
 import { createNewProject } from "./utils/projectStore.js";
 import { generateZipBlob, downloadBlobDirect } from "./utils/download.js";
 

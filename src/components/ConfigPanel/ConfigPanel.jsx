@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════ */
 
 import { useState } from "react";
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import ModelSelector from "./ModelSelector.jsx";
 import AppTypeGrid from "./AppTypeGrid.jsx";
 import FeatureSelector from "./FeatureSelector.jsx";
@@ -89,7 +89,7 @@ export default function ConfigPanel({ onGenerate, onStop, onRetry }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {currentPlan.map((f, i) => {
+            {currentPlan.map((f) => {
               const st = fileStatuses[f.path] || "pending";
               const stColor = st === "done" ? "var(--g)" : st === "gen" ? "var(--c)" : st === "err" ? "var(--r)" : "var(--di)";
               const stIcon  = st === "done" ? "✓" : st === "gen" ? "◉" : st === "err" ? "✕" : "○";

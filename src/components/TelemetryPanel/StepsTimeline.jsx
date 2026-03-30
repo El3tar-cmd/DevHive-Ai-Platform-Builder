@@ -1,7 +1,7 @@
 /* ── StepsTimeline — Steps log with windowing + TPS sparkline ── */
 
 import { useEffect, useRef, memo, useMemo } from "react";
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { STEP_ICONS } from "../../config/constants.js";
 
 /** Max steps visible in DOM at once (virtual windowing) */
@@ -43,14 +43,7 @@ function StepsTimeline() {
   const { state } = useForge();
   const { steps, metrics } = state;
   const endRef  = useRef(null);
-  const tpsHist = useRef([]);
-
-  // Track TPS history for sparkline (max 40 points)
-  useEffect(() => {
-    if (metrics.tps > 0) {
-      tpsHist.current = [...tpsHist.current.slice(-39), metrics.tps];
-    }
-  }, [metrics.tps]);
+  const tpsHistory = metrics.tpsHistory || [];
 
   // Auto-scroll to newest step
   useEffect(() => {
@@ -66,12 +59,12 @@ function StepsTimeline() {
   return (
     <div className="steps">
       {/* TPS Sparkline header */}
-      {tpsHist.current.length > 1 && (
+      {tpsHistory.length > 1 && (
         <div className="spark-header">
           <span style={{ fontSize: 9, color: "var(--mu)", fontFamily: "var(--fm)" }}>TPS</span>
-          <TpsSparkline history={tpsHist.current} />
+          <TpsSparkline history={tpsHistory} />
           <span style={{ fontSize: 9, color: "var(--c)", fontFamily: "var(--fm)" }}>
-            {tpsHist.current[tpsHist.current.length - 1]}
+            {tpsHistory[tpsHistory.length - 1]}
           </span>
         </div>
       )}

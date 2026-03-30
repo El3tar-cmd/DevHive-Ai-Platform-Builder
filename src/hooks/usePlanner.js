@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════ */
 
 import { useCallback } from "react";
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { FILE_PLANS } from "../config/constants.js";
 import { chatCompletion } from "../services/providerRouter.js";
 import { buildPlannerPrompt, PLANNER_SYSTEM_MESSAGE } from "../config/prompts.js";
@@ -65,7 +65,7 @@ export function usePlanner() {
       let dynamicPlan;
       try {
         dynamicPlan = JSON.parse(jsonString);
-      } catch (parseErr) {
+      } catch {
         console.error("Raw Invalid JSON:", jsonString);
         throw new Error("فشل في قراءة مخرجات الذكاء الاصطناعي (Invalid JSON Format). حاول مرة أخرى أو استخدم موديل أقوى.");
       }
@@ -93,12 +93,7 @@ export function usePlanner() {
       }
       return null;
     }
-  }, [
-    state.prompt, state.model, state.connected, state.loading,
-    state.provider, state.geminiApiKey, state.openRouterApiKey,
-    state.appType, state.features,
-    dispatch, Actions, addStep, abortRef
-  ]);
+  }, [state, dispatch, Actions, addStep, abortRef]);
 
   return { runPlanner };
 }

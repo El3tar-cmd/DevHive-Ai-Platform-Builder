@@ -3,8 +3,7 @@
    ══════════════════════════════════════════════════════ */
 
 import { useCallback, useRef, useEffect } from "react";
-import { useForge } from "../context/ForgeContext.jsx";
-import { OLLAMA_BASE_URL } from "../config/constants.js";
+import { useForge } from "../context/useForge.js";
 import { buildFilePrompt, SYSTEM_MESSAGE } from "../config/prompts.js";
 import { usePlanner } from "./usePlanner.js";
 import { useReviewer } from "./useReviewer.js";
@@ -20,7 +19,7 @@ import { getApiKey } from "../utils/apiKey.js";
 export function useGeneration() {
   const {
     state, dispatch, Actions,
-    selectedAppType, doneCount,
+    selectedAppType,
     addStep, abortRef, timerRef, startRef, tokRef,
   } = useForge();
 
@@ -37,6 +36,32 @@ export function useGeneration() {
   useEffect(() => {
     filesRef.current = state.files;
   }, [state.files]);
+
+  const resolveImportCandidates = useCallback((filePath, importPath) => {
+    const basePath = importPath.startsWith("@/")
+      ? `src/${importPath.slice(2)}`
+      : importPath.startsWith(".")
+        ? (() => {
+            const fromDir = filePath.includes("/") ? filePath.split("/").slice(0, -1) : [];
+            const segments = importPath.split("/");
+            const resolved = [...fromDir];
+
+            for (const segment of segments) {
+              if (!segment || segment === ".") continue;
+              if (segment === "..") {
+                resolved.pop();
+                continue;
+              }
+              resolved.push(segment);
+            }
+
+            return resolved.join("/");
+          })()
+        : importPath;
+
+    const extensions = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
+    return extensions.map((ext) => `${basePath}${ext}`);
+  }, []);
 
   /**
    * Streams a single file from the Ollama API.
@@ -70,11 +95,7 @@ export function useGeneration() {
     );
 
     return content;
-  }, [
-    state.provider, state.geminiApiKey, state.openRouterApiKey, state.appType, state.prompt, 
-    state.features, state.projName, state.model, selectedAppType, 
-    dispatch, Actions, tokRef
-  ]);
+  }, [state, selectedAppType, dispatch, Actions, tokRef]);
 
   /**
    * Main generation loop — generates all files dynamically.
@@ -87,6 +108,9 @@ export function useGeneration() {
     
     // If planning failed or aborted, stop early
     if (!dynamicPlan || !Array.isArray(dynamicPlan)) return;
+
+    const plannedPaths = new Set(dynamicPlan.map((file) => file.path));
+    const generationQueue = [...dynamicPlan];
 
     // 2. Generation Phase
     dispatch({ type: Actions.START_GENERATION, payload: dynamicPlan });
@@ -106,7 +130,7 @@ export function useGeneration() {
     addStep("info", `تأكيد هندسة ${selectedAppType?.label}`, `${dynamicPlan.length} ملفات · ${state.projName}`);
 
     let fileIdx = 0;
-    for (const fileInfo of dynamicPlan) {
+    for (const fileInfo of generationQueue) {
       if (signal.aborted) break;
 
       dispatch({ type: Actions.FILE_GENERATING, payload: fileInfo });
@@ -119,6 +143,7 @@ export function useGeneration() {
       try {
         const content = await generateFile(fileInfo, signal);
         dispatch({ type: Actions.FILE_DONE, payload: { path: fileInfo.path, content } });
+        filesRef.current = { ...filesRef.current, [fileInfo.path]: content };
         
         // --- Run Code Review Analysis ---
         const review = analyzeCodeQuality(content, fileInfo.path);
@@ -137,13 +162,18 @@ export function useGeneration() {
         const { missingFiles } = await runStaticReview(fileInfo.path, content, dynamicPlan);
         
         if (missingFiles && missingFiles.length > 0) {
+          let nextPlan = dynamicPlan;
           for (const mFile of missingFiles) {
-            if (!state.files[mFile.path] && mFile.code) {
+            if (!plannedPaths.has(mFile.path) && !filesRef.current[mFile.path] && mFile.code) {
+              plannedPaths.add(mFile.path);
               dispatch({ type: Actions.FILE_DONE, payload: { path: mFile.path, content: mFile.code } });
+              filesRef.current = { ...filesRef.current, [mFile.path]: mFile.code };
+              nextPlan = [...nextPlan, mFile];
               addStep("build", `✨ إصلاح ذاتي`, `تم توليد ملف ناقص: ${mFile.path}`);
-              // Append to dynamic plan so the UI reflects it
-              dynamicPlan.push(mFile);
             }
+          }
+          if (nextPlan !== dynamicPlan) {
+            dispatch({ type: Actions.PLANNING_DONE, payload: nextPlan });
           }
         }
         
@@ -176,16 +206,8 @@ export function useGeneration() {
           const importRegex = /(?:import|from)\s+['"](@\/[^'"]+|\.\/[^'"]+|\.\.\/[^'"]+)['"]/g;
           let m;
           while ((m = importRegex.exec(content)) !== null) {
-            let importedPath = m[1];
-            
-            // Normalize @/ alias to src/
-            if (importedPath.startsWith("@/")) {
-              importedPath = "src/" + importedPath.slice(2);
-            }
-
-            // Check if imported path exists (with common extensions)
-            const extensions = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js"];
-            const found = extensions.some(ext => allPaths.includes(importedPath + ext));
+            const candidates = resolveImportCandidates(filePath, m[1]);
+            const found = candidates.some((candidate) => allPaths.includes(candidate));
 
             if (!found) {
               errors.push(`${filePath}: Cannot find module '${m[1]}'`);
@@ -209,9 +231,9 @@ export function useGeneration() {
       await runHealingLoop(latestFiles, compileCheck);
     }
   }, [
-    state.prompt, state.model, state.connected, state.loading, state.projName,
-    dispatch, Actions, selectedAppType, addStep, doneCount,
-    generateFile, abortRef, timerRef, startRef, tokRef, runPlanner, runStaticReview, runHealingLoop
+    state, dispatch, Actions, selectedAppType,
+    addStep, generateFile, abortRef, timerRef, startRef, tokRef,
+    runPlanner, runStaticReview, runHealingLoop, resolveImportCandidates
   ]);
 
   /**
@@ -267,6 +289,7 @@ export function useGeneration() {
         try {
           const content = await generateFile(fileInfo, signal);
           dispatch({ type: Actions.FILE_DONE, payload: { path: fileInfo.path, content } });
+          filesRef.current = { ...filesRef.current, [fileInfo.path]: content };
 
           const review = analyzeCodeQuality(content, fileInfo.path);
           dispatch({ type: Actions.SET_FILE_REVIEW, payload: { path: fileInfo.path, review } });
@@ -292,7 +315,7 @@ export function useGeneration() {
     clearInterval(timerRef.current);
 
     if (!signal.aborted) {
-      const remainingErrors = Object.values(state.fileStatuses).filter(s => s === "err").length;
+      const remainingErrors = plan.filter((file) => state.fileStatuses[file.path] === "err" && !filesRef.current[file.path]).length;
       if (remainingErrors === 0 || recovered === failedFiles.length) {
         dispatch({ type: Actions.GENERATION_DONE });
         addStep("done", "\u2705 تم استرداد جميع الملفات!", `${recovered} ملف تم إصلاحه`);
@@ -302,8 +325,7 @@ export function useGeneration() {
       }
     }
   }, [
-    state.dynamicPlan, state.model, state.connected, state.fileStatuses,
-    dispatch, Actions, addStep, generateFile, abortRef, timerRef, startRef, tokRef
+    state, dispatch, Actions, addStep, generateFile, abortRef, timerRef, startRef, tokRef
   ]);
 
   return { generate, stop, retryFailed };

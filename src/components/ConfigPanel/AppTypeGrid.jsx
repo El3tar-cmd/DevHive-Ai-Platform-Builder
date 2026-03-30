@@ -1,6 +1,6 @@
 /* ── AppTypeGrid — 6 app type selection cards ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { APP_TYPES } from "../../config/constants.js";
 
 export default function AppTypeGrid() {

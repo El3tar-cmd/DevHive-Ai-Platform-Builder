@@ -1,6 +1,6 @@
 /* ── FeatureSelector — Feature checkboxes ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { FEATURES_LIST } from "../../config/constants.js";
 
 export default function FeatureSelector() {

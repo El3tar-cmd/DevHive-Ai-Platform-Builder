@@ -1,6 +1,6 @@
 /* ── MobileNav — Bottom navigation for mobile ── */
 
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { MOBILE_TABS } from "../config/constants.js";
 
 export default function MobileNav() {

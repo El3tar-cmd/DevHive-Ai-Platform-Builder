@@ -1,6 +1,6 @@
 /* ── ReviewPanel — Shows automated code review results ── */
 
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 
 export default function ReviewPanel({ path }) {
   const { state } = useForge();

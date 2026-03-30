@@ -1,7 +1,7 @@
 /* ── StreamView — Live streaming tokens ── */
 
 import { useEffect, useRef, useMemo } from "react";
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 import { tokenColor } from "../../utils/tokenColor.js";
 
 export default function StreamView() {

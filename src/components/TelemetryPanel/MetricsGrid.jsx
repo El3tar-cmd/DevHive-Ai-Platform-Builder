@@ -1,7 +1,7 @@
 /* ── MetricsGrid — 6 metric cards with speed bar ── */
 
 import { memo } from "react";
-import { useForge } from "../../context/ForgeContext.jsx";
+import { useForge } from "../../context/useForge.js";
 
 const METRICS = [
   { key: "tokens",  label: "توكنز",     color: "var(--c)",  fmt: v => v.toLocaleString(), bar: v => Math.min(100, v / 5000 * 100) },

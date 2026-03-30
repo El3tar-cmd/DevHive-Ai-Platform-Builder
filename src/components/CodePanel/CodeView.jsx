@@ -47,13 +47,14 @@ function tokenizeLine(line) {
 }
 
 function CodeView({ content }) {
-  if (!content) return null;
-
   const lines = useMemo(() => {
+    if (!content) return [];
     const raw = content.split("\n");
     const visible = raw.length > 1500 ? raw.slice(0, 1500) : raw;
     return visible.map((line) => tokenizeLine(line));
   }, [content]);
+
+  if (!content) return null;
 
   const totalLines = content.split("\n").length;
   const isTruncated = totalLines > 1500;

@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════ */
 
 import { useCallback } from "react";
-import { useForge } from "../context/ForgeContext.jsx";
+import { useForge } from "../context/useForge.js";
 import { chatCompletion } from "../services/providerRouter.js";
 import { HEALER_SYSTEM_MESSAGE } from "../config/prompts.js";
 import { getApiKey } from "../utils/apiKey.js";
@@ -193,7 +193,7 @@ ${allPaths}
       console.error("Healer request failed:", error);
       return [];
     }
-  }, [state.provider, state.model, state.geminiApiKey, state.openRouterApiKey, parsePatches]);
+  }, [state, parsePatches]);
 
   /**
    * Main healing loop.
