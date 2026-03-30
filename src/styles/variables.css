@@ -1,0 +1,61 @@
+/* ══════════════════════════════════════════════════════
+   Design Tokens — Ollama FullStack Forge v2
+   ══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Core Backgrounds ── */
+  --bg:      #05080f;
+  --s1:      #090d18;
+  --s2:      #0d1220;
+  --s3:      #101828;
+  --s4:      #141e2e;
+
+  /* ── Glass ── */
+  --glass:        rgba(9, 13, 24, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.06);
+
+  /* ── Borders ── */
+  --bd:  #1a2740;
+  --bd2: #233352;
+
+  /* ── Accent Colors ── */
+  --c:   #00d4ff;   /* cyan   */
+  --p:   #8b5cf6;   /* purple */
+  --g:   #10b981;   /* green  */
+  --a:   #f59e0b;   /* amber  */
+  --r:   #ef4444;   /* red    */
+  --pk:  #f472b6;   /* pink   */
+  --o:   #fb923c;   /* orange */
+
+  /* ── Glow ── */
+  --glow-c:  0 0 24px rgba(0, 212, 255, 0.18);
+  --glow-p:  0 0 24px rgba(139, 92, 246, 0.18);
+  --glow-g:  0 0 16px rgba(16, 185, 129, 0.18);
+
+  /* ── Text ── */
+  --tx:  #e2eaf8;
+  --tx2: #aabbcc;
+  --mu:  #4a6080;
+  --di:  #1e3048;
+
+  /* ── Typography ── */
+  --ff:  'Inter', system-ui, sans-serif;
+  --fm:  'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Radii ── */
+  --r4:  4px;
+  --r6:  6px;
+  --r8:  8px;
+  --r12: 12px;
+  --r16: 16px;
+
+  /* ── Shadows ── */
+  --sh:    0 4px 24px rgba(0, 0, 0, 0.5);
+  --sh-lg: 0 8px 48px rgba(0, 0, 0, 0.6);
+
+  /* ── Transitions ── */
+  --ease:   cubic-bezier(0.4, 0, 0.2, 1);
+  --trans:  all 0.18s var(--ease);
+}

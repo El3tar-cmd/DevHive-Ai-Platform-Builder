@@ -1,0 +1,83 @@
+/* ══════════════════════════════════════════════════════
+   Base — Reset, Scrollbar, Animations v2
+   ══════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+body { font-family: var(--ff); color: var(--tx); -webkit-font-smoothing: antialiased; }
+
+@media (min-width: 1024px) {
+  body { display: flex; justify-content: center; }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mu); }
+
+/* ── Selection ── */
+::selection { background: rgba(0, 212, 255, 0.2); color: var(--tx); }
+
+/* ── Keyframes ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes gen-pulse {
+  0%, 100% { border-color: rgba(0, 212, 255, 0.15); }
+  50%      { border-color: rgba(0, 212, 255, 0.55); box-shadow: 0 0 12px rgba(0,212,255,0.15); }
+}
+
+@keyframes pulse-bar {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.1); }
+  50%      { box-shadow: 0 0 24px rgba(0, 212, 255, 0.35); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes palette-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
